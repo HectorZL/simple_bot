@@ -10,9 +10,11 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@types/express": "^5.0.0",
     "axios": "^1.7.9",
     "discord.js": "^14.14.1",
     "dotenv": "^16.4.7",
+    "express": "^4.21.2",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.3"
   },

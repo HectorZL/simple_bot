@@ -1,21 +1,35 @@
-import { Client, GatewayIntentBits, Message, Attachment } from 'discord.js';
+import { Client, GatewayIntentBits, Message } from 'discord.js';
 import * as dotenv from 'dotenv';
+import express from 'express';
 import fs from 'fs';
 import axios from 'axios';
 import path from 'path';
 
+// Cargar variables de entorno
 dotenv.config();
 
-// Crear el cliente del bot con permisos necesarios
+// Crear el cliente del bot
 const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent],
+});
+
+// Servidor HTTP para mantener el bot activo
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.get('/', (req: any, res: { send: (arg0: string) => void; }) => {
+  res.send('El bot está activo y escuchando.');
+});
+
+app.listen(PORT, () => {
+  console.log(`Servidor escuchando en el puerto ${PORT}`);
 });
 
 // Carpeta para guardar imágenes
 const IMAGE_FOLDER = './images';
 
 // Función para guardar logs
-function logActivity(message: string) {
+function logActivity(message: string): void {
   const timestamp = new Date().toISOString();
   const logMessage = `[${timestamp}] ${message}\n`;
   fs.appendFileSync('log.txt', logMessage);
@@ -29,7 +43,9 @@ if (!fs.existsSync(IMAGE_FOLDER)) {
 
 // Evento: Cuando el bot se conecta
 client.once('ready', () => {
-  logActivity(`Bot conectado como ${client.user?.tag}`);
+  if (client.user) {
+    logActivity(`Bot conectado como ${client.user.tag}`);
+  }
 });
 
 // Evento: Detectar mensajes
@@ -44,15 +60,14 @@ client.on('messageCreate', async (message: Message) => {
     // Guardar el mensaje en un archivo de texto
     fs.appendFileSync('mensajes.txt', `${message.author.username}: ${message.content}\n`);
 
-    // Si el mensaje tiene imágenes adjuntas, descargarlas
+    // Si el mensaje tiene archivos adjuntos, descargar las imágenes
     if (message.attachments.size > 0) {
-      message.attachments.forEach(async (attachment: Attachment) => {
+      message.attachments.forEach(async (attachment) => {
         if (attachment.contentType?.startsWith('image/')) {
           try {
-            const imagePath = path.join(IMAGE_FOLDER, `${Date.now()}_${attachment.name}`);
+            const imagePath = path.join(IMAGE_FOLDER, `${Date.now()}_${attachment.name || 'image'}`);
             const response = await axios.get(attachment.url, { responseType: 'arraybuffer' });
             fs.writeFileSync(imagePath, response.data as Buffer);
-
             logActivity(`📷 Imagen guardada: ${imagePath}`);
           } catch (error) {
             logActivity(`❌ Error al descargar la imagen: ${error}`);
